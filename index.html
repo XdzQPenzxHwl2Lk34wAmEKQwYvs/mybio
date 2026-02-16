@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>xocu</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Pixelify Sans', monospace;
+            background: #f5f5f5;
+            color: #333333;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+        }
+
+        @keyframes gridMove {
+            0% {
+                transform: translate(0, 0);
+            }
+
+            100% {
+                transform: translate(50px, 50px);
+            }
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0px) scale(1);
+            }
+
+            50% {
+                transform: translateY(-20px) scale(1.1);
+            }
+        }
+
+        .container {
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .motd-screen {
+            background: linear-gradient(135deg, #f5f5f5, #e0e0e0);
+            color: #333;
+            border: 3px solid #999;
+            border-radius: 8px;
+            padding: 40px;
+            max-width: 600px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+
+        .motd-screen.fade-out {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+
+        .motd-header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            letter-spacing: 3px;
+            color: #555;
+        }
+
+        .motd-text {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            color: #666;
+        }
+
+        .understand-btn {
+            background: #666;
+            color: white;
+            border: 2px solid #999;
+            padding: 12px 24px;
+            font-family: inherit;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .understand-btn:hover {
+            background: #555;
+            border-color: #777;
+        }
+
+        .verification-screen {
+            display: none;
+            background: #f5f5f5;
+            color: #333333;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        .verification-screen.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-text {
+            font-size: 48px;
+            font-weight: bold;
+            text-align: center;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 1s ease-in-out;
+            color: #797979;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .loading-text.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .loading-text.hide {
+            opacity: 0;
+            transform: scale(1.2);
+        }
+
+        .terminal-line {
+            margin-bottom: 10px;
+            opacity: 0;
+            animation: fadeIn 0.5s ease forwards;
+            color: #797979;
+        }
+
+        .terminal-line.typing::after {
+            content: '_';
+            animation: blink 1s infinite;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes blink {
+
+            0%,
+            50% {
+                opacity: 1;
+            }
+
+            51%,
+            100% {
+                opacity: 0;
+            }
+        }
+
+        .main-interface {
+            display: none;
+            height: 100vh;
+            width: 100vw;
+            background: #f5f5f5;
+            color: #333333;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        .main-interface .animated-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            overflow: hidden;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(37, 99, 235, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(37, 99, 235, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 30s linear infinite;
+        }
+
+        .main-interface .animated-background::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle 200px at var(--mouse-x, 50%) var(--mouse-y, 50%),
+                    rgba(255, 255, 255, 0.3) 0%,
+                    transparent 50%);
+            pointer-events: none;
+        }
+
+        .main-interface .cute-elements {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .cute-face {
+            position: absolute;
+            font-size: 24px;
+            color: rgba(37, 99, 235, 0.8);
+            animation: bounce 3s infinite ease-in-out;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+        }
+
+        .cute-face:nth-child(even) {
+            animation-delay: 1.5s;
+            color: rgba(220, 38, 38, 0.8);
+        }
+
+        .cute-face:nth-child(3n) {
+            animation-delay: 3s;
+            color: rgba(34, 197, 94, 0.8);
+        }
+
+        .interface-container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            background: transparent;
+            position: relative;
+            z-index: 3;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: #ffffff;
+            padding: 20px;
+            border-right: 1px solid #cccccc;
+            height: 100vh;
+            overflow-y: auto;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .prompt {
+            color: #797979;
+            margin-bottom: 20px;
+        }
+
+        .nav-section {
+            margin-bottom: 30px;
+        }
+
+        .nav-item {
+            padding: 8px 0;
+            color: #666666;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            border-radius: 4px;
+            padding-left: 8px;
+            margin: 2px 0;
+        }
+
+        .nav-item:hover {
+            color: #797979;
+            background: rgba(37, 99, 235, 0.1);
+            transform: translateX(5px);
+        }
+
+        .nav-item.expandable::before {
+            content: '+ ';
+            color: #797979;
+            transition: transform 0.3s ease;
+        }
+
+        .nav-item.expandable.expanded::before {
+            content: '- ';
+            transform: rotate(0deg);
+        }
+
+        .nav-item.file::before {
+            content: '/ ';
+            color: #797979;
+        }
+
+        .nav-item.command::before {
+            content: '$ ';
+            color: #797979;
+        }
+
+        .dropdown-items {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
+            margin-left: 20px;
+        }
+
+        .dropdown-items.expanded {
+            max-height: 500px;
+        }
+
+        .dropdown-item {
+            padding: 4px 0;
+            color: #888888;
+            cursor: pointer;
+            transition: color 0.3s;
+            font-size: 13px;
+            opacity: 0;
+            transform: translateX(-10px);
+            animation: none;
+        }
+
+        .dropdown-item.show {
+            animation: flickerIn 0.6s ease-out forwards;
+        }
+
+        .dropdown-item:hover {
+            color: #797979;
+        }
+
+        @keyframes flickerIn {
+            0% {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+
+            20% {
+                opacity: 0.3;
+                transform: translateX(-5px);
+            }
+
+            40% {
+                opacity: 0;
+                transform: translateX(-3px);
+            }
+
+            60% {
+                opacity: 0.7;
+                transform: translateX(-1px);
+            }
+
+            80% {
+                opacity: 0.2;
+                transform: translateX(0px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateX(0px);
+            }
+        }
+
+        .divider {
+            border-bottom: 1px solid #cccccc;
+            margin: 20px 0;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            overflow-y: auto;
+            background: transparent;
+            position: relative;
+            z-index: 4;
+        }
+
+        .user-header {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 40px;
+            letter-spacing: 4px;
+            color: #333333;
+        }
+
+        .profile-card {
+            border: 2px solid #cccccc;
+            border-radius: 8px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+        }
+
+        .profile-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .avatar {
+            width: 150px;
+            height: 150px;
+            background: #f0f0f0;
+            border: 2px solid #cccccc;
+            border-radius: 8px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: #797979;
+            background-image: url('https://i.pinimg.com/736x/34/7d/7c/347d7c3bc613e897d181c6e139359b9a.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        .username {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333333;
+        }
+
+        .description {
+            text-align: center;
+            color: #666666;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .status {
+            text-align: center;
+            color: #dc2626;
+            font-style: italic;
+            margin-bottom: 20px;
+        }
+
+        .links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .link {
+            color: #797979;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .link:hover {
+            color: #1d4ed8;
+        }
+
+        .content-area {
+            display: none;
+            width: 100%;
+            height: 100%;
+            color: #333333;
+            padding: 40px;
+            opacity: 0;
+            animation: pageFlickerIn 0.8s ease-out forwards;
+        }
+
+        .content-area.active {
+            display: block;
+        }
+
+        .profile-view.hide {
+            animation: pageFlickerOut 0.6s ease-out forwards;
+        }
+
+        @keyframes pageFlickerIn {
+            0% {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+
+            15% {
+                opacity: 0.3;
+                transform: translateX(-5px);
+            }
+
+            30% {
+                opacity: 0;
+                transform: translateX(-3px);
+            }
+
+            45% {
+                opacity: 0.7;
+                transform: translateX(-1px);
+            }
+
+            60% {
+                opacity: 0.2;
+                transform: translateX(0px);
+            }
+
+            75% {
+                opacity: 0.9;
+                transform: translateX(0px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateX(0px);
+            }
+        }
+
+        @keyframes pageFlickerOut {
+            0% {
+                opacity: 1;
+                transform: translateX(0px);
+            }
+
+            25% {
+                opacity: 0.3;
+                transform: translateX(2px);
+            }
+
+            50% {
+                opacity: 0.8;
+                transform: translateX(4px);
+            }
+
+            75% {
+                opacity: 0.1;
+                transform: translateX(8px);
+            }
+
+            100% {
+                opacity: 0;
+                transform: translateX(15px);
+                display: none;
+            }
+        }
+
+        .content-area h2 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            color: #333333;
+            border-bottom: 2px solid #cccccc;
+            padding-bottom: 10px;
+        }
+
+        .content-area h3 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            color: #797979;
+        }
+
+        .content-area p {
+            line-height: 1.6;
+            margin-bottom: 15px;
+            color: #666666;
+        }
+
+        .back-btn {
+            background: #ffffff;
+            color: #797979;
+            border: 1px solid #cccccc;
+            padding: 8px 16px;
+            font-family: inherit;
+            font-size: 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .back-btn:hover {
+            background: #f0f0f0;
+            border-color: #797979;
+        }
+
+        .profile-view {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            width: 100%;
+            height: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .interface-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                background: #ffffff;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+
+            .loading-text {
+                font-size: 32px;
+                padding: 20px;
+            }
+
+            .cute-face {
+                font-size: 20px;
+            }
+
+            .square {
+                opacity: 0.3;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="motd-screen" id="motdScreen">
+            <div class="motd-header">{ XOCU }</div>
+            <div class="motd-text">
+                owner & dev of draxion
+                @archivecash
+            </div>
+            <button class="understand-btn" onclick="startVerification()">UNDERSTOOD</button>
+        </div>
+
+        <div class="verification-screen" id="verificationScreen">
+            <div class="loading-text" id="loadingText">xocu <3</div>
+        </div>
+
+        <div class="main-interface" id="mainInterface">
+            <div class="animated-background" id="animatedBg"></div>
+            <div class="cute-elements" id="cuteElements"></div>
+            <div class="interface-container">
+                <div class="sidebar">
+                    <div class="prompt">> user</div>
+
+                    <div class="nav-section">
+                        <div class="nav-item file" onclick="showContent('log')">log</div>
+                        <div class="nav-item expandable" onclick="toggleDropdown('projects')">projects</div>
+                        <div class="dropdown-items" id="projectsDropdown">
+                            <div class="dropdown-item" onclick="showContent('draxion')">/ draxion.xyz</div>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="nav-section">
+                        <div class="nav-item command" onclick="showContent('about')">about me</div>
+                        <div class="nav-item command" onclick="showContent('skills')">skills</div>
+                        <div class="nav-item command" onclick="showContent('contact')">contact</div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="nav-section">
+                        <div class="nav-item expandable" onclick="toggleDropdown('themes')">art</div>
+                        <div class="dropdown-items" id="themesDropdown">
+                            <div class="dropdown-item" onclick="showContent('1')">/ 1.gif</div>
+                            <div class="dropdown-item" onclick="showContent('2')">/ 2.gif</div>
+                            <div class="dropdown-item" onclick="showContent('3')">/ 3.gif</div>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <center> <img width="200px" height="200px" src="gif.gif"></center>
+
+                    <div class="divider"></div>
+
+                    <div class="nav-item" style="color: #dc2626; cursor: pointer;" onclick="logout()">
+                        ⚠ LOGOUT
+                    </div></div>
+
+                    <div class="main-content">
+                        <div class="profile-view" id="profileView">
+                            <div class="user-header">whoami</div>
+
+                            <div class="profile-card">
+                                <div class="avatar"></div>
+                                <div class="username">xocu</div>
+                                <div class="description">
+                                    У неё на кистях больше ножевых, чем в моём теле
+Не ебись с моим музлом, оно вас нахуй отымеет<br>
+                                </div>
+                                <div class="status">status: working</div>
+                                <div class="links">
+                                    <a target="_blank" href="https://t.me/bioxocu" class="link">Telegram</a>
+                                    <a target="_blank" href="https://discord.gg/WduhGC8h4S"
+                                        class="link">Discord</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="aboutContent" class="content-area">
+                            <button class="back-btn" onclick="goBack()">← Back to Profile</button>
+                            <h2>About Me</h2>
+                            <p>
+                                :p
+
+                            </p>
+                        </div>
+
+                        <div id="skillsContent" class="content-area">
+                            <button class="back-btn" onclick="goBack()">← Back to Profile</button>
+                                <h2>Skills</h2>
+
+                                <h3>Programming Languages</h3>
+                                <p>C++, little bit of lua</p><br>
+
+                        </div>
+
+                        <div id="contactContent" class="content-area">
+                            <button class="back-btn" onclick="goBack()">← Back to Profile</button>
+                            <h2>Contact Information</h2>
+                            <h3>Get in Touch</h3>
+                            <p>Feel free to reach out for collaborations, opportunities, or just to say hello!</p>
+                            <p>~ Telegram: @bioxocu</p>
+                            <p>~ Discord: @archivecash</p>
+                        </div>
+
+                        <div id="logContent" class="content-area">
+                            <button class="back-btn" onclick="goBack()">← Back to Profile</button>
+                            <h2>What I have been working on</h2>
+                            <p>Draxion</p>
+                            <p>Xuaa</p>
+                            <p>Zybrin</p>
+                            <br>
+                            <p>~ going to start working on undetect.space </p>
+                        </div>
+
+<div id="draxionContent" class="content-area">
+    <button class="back-btn" onclick="goBack()">← Back to Profile</button>
+    <h2>Draxion ~ owner & developer</h2>
+    <p>An undetected Roblox external cheat with a focus on performance and versatility.</p>
+
+    <h3>Features</h3>
+    <p>• <strong>Aimbot</strong> - Precision targeting with options for prediction, smoothing, anti ground shots, FOV customization, and sticky aim.</p>
+    <p>• <strong>Silent Aim</strong> - Discreet targeting with prediction capabilities.</p>
+    <p>• <strong>Player Visuals (ESP)</strong> - Display player names, distance, health bars, rig types, and tools. Includes customization options like colors, outlines and glow.</p>
+    <p>• <strong>Environment Visuals</strong> - Highlight items, chests, and dropped money.</p>
+    <p>• <strong>Player List</strong> - Manage a list of players with status indicators (Whitelist, Blacklist, Marked, Client). Includes Spectate, Fling, Aimview, and Teleport functionalities.</p>
+    <p>• <strong>Gameplay Enhancements</strong> - Features like Rapid Fire, Anti-Stomp, Jump Power modification, Walk Speed modification, and Noclip.</p>
+    <p>• <strong>Game Explorer</strong> - In-game exploration tool for the game's object hierarchy.</p>
+    <p>• <strong>Lua Scripting API</strong> - Integration-ready API for third-party applications and services, allowing for custom scripts and extended functionality.</p>
+
+</div>
+
+                        <div id="xocuContent" class="content-area">
+                            <button class="back-btn" onclick="goBack()">← Back to Profile</button>
+                            <h2>xocu.wiki</h2>
+                            <h3>Personal Website</h3>
+                            <p>A creative personal space, featuring projects, and
+                                experimental web design.</p>
+                            <h3>Content</h3>
+                            <p>• Personal thoughts and experiences</p>
+                            <p>• Retro web design aesthetics</p>
+                        </div>
+
+                        <div id="1Content" class="content-area">
+                            <button class="back-btn" onclick="goBack()">← Back to Profile</button>
+                            <img src="1.gif">
+                        </div>
+
+                        <div id="2Content" class="content-area">
+                            <button class="back-btn" onclick="goBack()">← Back to Profile</button>
+                            <img src="2.gif">
+                        </div>
+
+                        <div id="3Content" class="content-area">
+                            <button class="back-btn" onclick="goBack()">← Back to Profile</button>
+                            <img src="3.gif">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            const verificationMessages = [
+                'lets list all the skids.',
+                '<br>Koda<br>Kankan<br>Fed<br>Mandela<br>Amru<br>Tightful<br>Kx<br>Styles<br>Prynce',
+                'lets list reputable devs now.',
+                '<br>Aori<br>Localpointer<br>Blizex<br>Kareem<br>Pt<br>Dylan<br>Now<br>Morty<br>0x108',
+                'now a little bit about the owner of this site.'
+            ];
+
+            function createAnimatedBackground() {
+                const bg = document.getElementById('animatedBg');
+                if (!bg) {
+                    console.log('animatedBg element not found');
+                    return;
+                }
+
+                bg.innerHTML = '';
+
+                console.log('Grid background initialized');
+
+                document.addEventListener('mousemove', (e) => {
+                    const x = (e.clientX / window.innerWidth) * 100;
+                    const y = (e.clientY / window.innerHeight) * 100;
+                    bg.style.setProperty('--mouse-x', x + '%');
+                    bg.style.setProperty('--mouse-y', y + '%');
+                });
+            }
+
+            function createCuteElements() {
+                const container = document.getElementById('cuteElements');
+                if (!container) {
+                    console.log('cuteElements container not found');
+                    return;
+                }
+
+                container.innerHTML = '';
+
+                const faces = [':3', '<3', '^_^', ':D', 'uwu', '>:3', ':P', ':)', 'o.o', '^.^'];
+
+                console.log('Creating cute elements');
+
+                for (let i = 0; i < 15; i++) {
+                    const face = document.createElement('div');
+                    face.className = 'cute-face';
+                    face.textContent = faces[Math.floor(Math.random() * faces.length)];
+                    face.style.left = Math.random() * 90 + '%';
+                    face.style.top = Math.random() * 90 + '%';
+                    face.style.animationDelay = Math.random() * 3 + 's';
+                    container.appendChild(face);
+                }
+
+                console.log('Added', container.children.length, 'cute faces');
+            }
+
+            function startVerification() {
+                const motdScreen = document.getElementById('motdScreen');
+                motdScreen.classList.add('fade-out');
+                setTimeout(() => {
+                    verificationScreen.classList.remove('active');
+                    document.getElementById('mainInterface').style.display = 'block';
+                    setTimeout(() => {
+                        createAnimatedBackground();
+                        createCuteElements();
+                    }, 100);
+                }, 800);
+            }
+
+            function toggleDropdown(section) {
+                const dropdown = document.getElementById(section + 'Dropdown');
+                const navItem = dropdown.previousElementSibling;
+                const items = dropdown.querySelectorAll('.dropdown-item');
+
+                if (dropdown.classList.contains('expanded')) {
+                    navItem.classList.remove('expanded');
+                    dropdown.classList.remove('expanded');
+                    items.forEach(item => item.classList.remove('show'));
+                } else {
+                    navItem.classList.add('expanded');
+                    dropdown.classList.add('expanded');
+
+                    items.forEach((item, index) => {
+                        setTimeout(() => {
+                            item.classList.add('show');
+                        }, index * 150);
+                    });
+                }
+            }
+
+            function showContent(section) {
+                const profileView = document.getElementById('profileView');
+
+                profileView.classList.add('hide');
+
+                setTimeout(() => {
+                    profileView.style.display = 'none';
+                    profileView.classList.remove('hide');
+
+                    const contentAreas = document.querySelectorAll('.content-area');
+                    contentAreas.forEach(area => area.classList.remove('active'));
+
+                    const targetContent = document.getElementById(section + 'Content');
+                    if (targetContent) {
+                        targetContent.classList.add('active');
+                    }
+                }, 600);
+            }
+
+            function goBack() {
+                const contentAreas = document.querySelectorAll('.content-area');
+                const activeArea = document.querySelector('.content-area.active');
+
+                if (activeArea) {
+                    activeArea.style.animation = 'pageFlickerOut 0.6s ease-out forwards';
+
+                    setTimeout(() => {
+                        contentAreas.forEach(area => {
+                            area.classList.remove('active');
+                            area.style.animation = '';
+                        });
+
+                        document.getElementById('profileView').style.display = 'flex';
+                    }, 600);
+                } else {
+                    contentAreas.forEach(area => area.classList.remove('active'));
+                    document.getElementById('profileView').style.display = 'flex';
+                }
+            }
+
+            function logout() {
+                if (confirm('Are you sure you want to logout?')) {
+                    location.reload();
+                }
+            }
+
+            document.addEventListener('keydown', function (e) {
+                if (e.ctrlKey && e.key === 'c') {
+                    console.log('Ctrl+C detected - Terminal interrupt');
+                }
+            });
+        </script>
+</body>
+
+</html>
